@@ -41,8 +41,5 @@ private:
 };
 
 
-std::string BuildFileName(int file_no, std::string extension, int min_width);
-
-
 }
 }

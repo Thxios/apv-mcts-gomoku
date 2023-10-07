@@ -52,7 +52,7 @@ private:
 
 public:
     struct Config {
-        int n_threads = 4;
+        size_t n_threads = 4;
         int virtual_loss = 3;
         double p_uct = 5;
     };

@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <exception>
 #include <fmt/format.h>
+#include <boost/functional/hash.hpp>
 #include "gomoku/board.h"
 
 
@@ -67,6 +68,14 @@ void Board::Reset() {
 }
 
 
+std::size_t Board::Hash() const {
+    std::size_t seed = 0;
+    boost::hash_combine<std::size_t>(seed, black_hsum);
+    boost::hash_combine<std::size_t>(seed, white_hsum);
+    return seed;
+}
+
+
 void Board::Play(mcts::Action action) {
     Coord pos = Action2Coord(action);
     if (Terminated())
@@ -76,13 +85,20 @@ void Board::Play(mcts::Action action) {
     if (GetColor(action) != EMPTY)
         throw std::runtime_error(fmt::format("action {} is not empty", action));
 
+    std::size_t seed = 0;
+    boost::hash_combine<int>(seed, action);
+
     board[EMPTY][pos.r][pos.c] = 0;
     board[turn][pos.r][pos.c] = 1;
 
-    if (turn == BLACK)
+    if (turn == BLACK) {
         turn = WHITE;
-    else if (turn == WHITE)
+        black_hsum += seed;
+    }
+    else if (turn == WHITE) {
         turn = BLACK;
+        white_hsum += seed;
+    }
     turn_elapsed++;
 
     last_action = action;
@@ -170,22 +186,8 @@ std::ostream& operator<<(std::ostream& out, Board& b) {
         out << '\n';
     }
 
-    out << "TURN: " << b.turn_elapsed << " " << (".XO"[b.turn]) << " - ";
-
-    switch (b.state) {
-    case Board::State::ONGOING:
-        out << "ONGOING";
-        break;
-    case Board::State::BLACK_WIN:
-        out << "BLACK(X) WIN";
-        break;
-    case Board::State::WHITE_WIN:
-        out << "WHITE(O) WIN";
-        break;
-    case Board::State::DRAW:
-        out << "DRAW";
-        break;
-    }
+    out << "TURN: " << b.turn_elapsed << " " << (".XO"[b.turn]) 
+        << " - " << Board::state2str(b.state);
     return out;
 }
 

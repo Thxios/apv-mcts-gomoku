@@ -48,5 +48,19 @@ inline Coord Action2Coord(mcts::Action action) {
 }
 
 
+inline const char* Board::state2str(State state) {
+    switch (state) {
+    case Board::State::ONGOING:
+        return "ONGOING";
+    case Board::State::BLACK_WIN:
+        return "BLACK(X) WIN";
+    case Board::State::WHITE_WIN:
+        return "WHITE(O) WIN";
+    case Board::State::DRAW:
+        return "DRAW";
+    }
+    return "UNKNOWN";
+}
+
 }
 

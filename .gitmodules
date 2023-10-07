@@ -1,3 +1,6 @@
 [submodule "libraries/fmt"]
 	path = libraries/fmt
 	url = https://github.com/fmtlib/fmt
+[submodule "libraries/indicators"]
+	path = libraries/indicators
+	url = https://github.com/p-ranav/indicators.git

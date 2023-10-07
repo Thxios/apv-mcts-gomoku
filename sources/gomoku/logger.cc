@@ -101,20 +101,5 @@ void Log::Save(const std::string& path) const {
 }
 
 
-std::string BuildFileName(int file_no, std::string extension, int min_width) {
-    std::ostringstream os;
-    int base = 1;
-    for (int i = 1; i < min_width; i++)
-        base *= 10;
-    while (file_no > 0) {
-        os << (file_no / base);
-        file_no %= base;
-        base /= 10;
-    }
-    os << "." << extension;
-    return os.str();
-}
-
-
 }
 }

@@ -7,6 +7,7 @@
 #include <mutex>
 #include <utility>
 #include <condition_variable>
+#include <unordered_set>
 #include "mcts/evaluator.h"
 #include "gomoku/evaluator.h"
 
@@ -19,7 +20,7 @@ using mcts::Evaluation;
 
 class EvaluationQueue : public mcts::EvaluatorBase {
 public:
-    EvaluationQueue(GomokuEvaluator &evaluator_);
+    explicit EvaluationQueue(GomokuEvaluator&& evaluator_);
     virtual ~EvaluationQueue();
     
     virtual Evaluation Evaluate(const mcts::StateBase* state);
@@ -27,13 +28,16 @@ public:
 private:
     void EvaluationThread();
 
-    GomokuEvaluator& evaluator;
+    GomokuEvaluator evaluator;
     std::thread eval_thread;
 
     bool running;
     std::queue<std::pair<Input, std::promise<Output>*>> q;
     std::mutex m_q;
     std::condition_variable cv_q;
+
+    std::unordered_set<std::size_t> hashes;
+    std::mutex m_s;
 };
 
 

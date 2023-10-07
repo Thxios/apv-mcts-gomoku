@@ -7,7 +7,7 @@
 namespace gomoku {
 
 
-EvaluationQueue::EvaluationQueue(GomokuEvaluator& evaluator_)
+EvaluationQueue::EvaluationQueue(GomokuEvaluator&& evaluator_)
 : evaluator(evaluator_) {
     running = true;
     eval_thread = std::thread(&EvaluationQueue::EvaluationThread, this);
@@ -27,6 +27,11 @@ EvaluationQueue::~EvaluationQueue() {
 
 Evaluation EvaluationQueue::Evaluate(const mcts::StateBase* state) {
     const Board& board = dynamic_cast<const Board&>(*state);
+    // std::size_t hash = board.Hash();
+    // {
+    //     std::unique_lock<std::mutex> lock(m_s);
+    //     hashes.insert(hash);
+    // }
     Input input = evaluator.Preprocess(board);
 
     std::promise<Output> p;
@@ -38,7 +43,7 @@ Evaluation EvaluationQueue::Evaluate(const mcts::StateBase* state) {
     cv_q.notify_one();
 
     Output output = f.get();
-    Evaluation evaluation = evaluator.Postprocess(output, board);
+    Evaluation evaluation = evaluator.Postprocess(std::move(output), board);
     return evaluation;
 }
 
@@ -62,7 +67,6 @@ void EvaluationQueue::EvaluationThread() {
             }
         }
         if (!inputs.empty()) {
-            // printf("eval: %d size\n", (int)inputs.size());
             std::vector<Output> results = evaluator.EvaluateBatch(inputs);
             for (int i = 0; i < results.size(); i++) {
                 promises[i]->set_value(std::move(results[i]));

@@ -5,7 +5,9 @@
 #include <memory>
 #include <iostream>
 #include <string>
+#include <vector>
 #include "mcts/state.h"
+#include "mcts/tree.h"
 #include "gomoku/gomoku.h"
 #include "gomoku/coord.h"
 
@@ -42,8 +44,11 @@ public:
     inline int GetTurnElapsed() const;
     inline State GetState() const;
 
+    std::size_t Hash() const;
+
     friend std::ostream& operator<<(std::ostream& out, Board& board);
     
+    inline static const char* state2str(State state);
     const static int DEPTH = 3;
 
 private:
@@ -60,12 +65,17 @@ private:
     State state;
     int turn_elapsed;
     mcts::Action last_action;
+    std::size_t black_hsum = 0, white_hsum = 0;
 };
 
 
 inline mcts::Action Coord2Action(Coord coord);
 inline mcts::Action Coord2Action(int r, int c);
 inline Coord Action2Coord(mcts::Action action);
+
+
+void ShowTopActions(
+    std::vector<mcts::MCTS::ActionInfo>& infos, int k, std::ostream& out);
 
 
 }

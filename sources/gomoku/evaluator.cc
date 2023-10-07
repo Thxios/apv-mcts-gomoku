@@ -8,27 +8,19 @@ namespace gomoku {
 
 GomokuEvaluator::GomokuEvaluator(torch::jit::script::Module&& model_)
 :model(model_), device(torch::kCPU) {
+    torch::NoGradGuard();
     if (torch::cuda::is_available()) {
         device = torch::Device(torch::kCUDA);
     }
     model.eval();
     model.to(device);
-    if (torch::cuda::is_available()) {
-        torch::NoGradGuard();
-        std::vector<torch::jit::IValue> warmup({
-            torch::randn({2, 3, SIZE, SIZE}, torch::kFloat32).to(device),
-            torch::ones({2}, torch::kInt64).to(device)
-        });
-        model(warmup);
-        model(warmup);
-    }
 }
 
 
 std::vector<Output> GomokuEvaluator::EvaluateBatch(std::vector<Input>& inputs) {
+    torch::NoGradGuard();
     int size = inputs.size();
     std::vector<torch::Tensor> states, turns, masks;
-    torch::NoGradGuard();
 
     for (Input& input: inputs) {
         states.push_back(std::move(input.state));
@@ -62,13 +54,20 @@ std::vector<Output> GomokuEvaluator::EvaluateBatch(std::vector<Input>& inputs) {
 }
 
 
-Input GomokuEvaluator::Preprocess(const Board& board) const {
+Input GomokuEvaluator::Preprocess(const Board& board) {
+    torch::NoGradGuard();
     Input ret;
     ret.state = torch::from_blob(
         (void*)board.GetDataPtr(),
         {3, SIZE, SIZE},
         torch::TensorOptions().dtype(torch::kInt8)
     ).to(torch::kFloat32);
+    ret.state = torch::concatenate({
+        ret.state,
+        ((board.GetTurn() == BLACK) ? 
+        torch::ones({1, SIZE, SIZE}, torch::TensorOptions().dtype(torch::kFloat32)) :
+        torch::zeros({1, SIZE, SIZE}, torch::TensorOptions().dtype(torch::kFloat32)))
+    });
     ret.turn = ((board.GetTurn() == BLACK) ? 
         torch::zeros(1, torch::TensorOptions().dtype(torch::kInt64)) :
         torch::ones(1, torch::TensorOptions().dtype(torch::kInt64)));
@@ -81,8 +80,8 @@ Input GomokuEvaluator::Preprocess(const Board& board) const {
     return ret;
 }
 
-Evaluation GomokuEvaluator::Postprocess
-(Output& output, const Board& board) const {
+Evaluation GomokuEvaluator::Postprocess(Output&& output, const Board& board) {
+    torch::NoGradGuard();
     Reward r = std::clamp<double>(output.first, -1, 1);
     if (board.GetTurn() == WHITE)
         r = -r;

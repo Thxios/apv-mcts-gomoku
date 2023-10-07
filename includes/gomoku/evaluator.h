@@ -33,8 +33,9 @@ public:
     ~GomokuEvaluator() = default;
     
     std::vector<Output> EvaluateBatch(std::vector<Input>& inputs);
-    Input Preprocess(const Board& board) const;
-    Evaluation Postprocess(Output& output, const Board& board) const;
+
+    static Input Preprocess(const Board& board);
+    static Evaluation Postprocess(Output&& output, const Board& board);
 
 private:
     torch::jit::script::Module model;
