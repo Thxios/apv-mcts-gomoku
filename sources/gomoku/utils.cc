@@ -3,6 +3,8 @@
 #include "gomoku/coord.h"
 #include "gomoku/board.h"
 
+
+
 namespace gomoku {
 
 

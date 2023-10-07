@@ -64,10 +64,21 @@ po::options_description GetSelfplayConfig(Server::Config& cfg) {
             po::value<size_t>(&cfg.n_workers)->default_value(1),
             "number of games played simultaneously"
         )
+
         (
             "n_searches", 
             po::value<size_t>(&cfg.sp_cfg.compute_budget)->default_value(800),
             "number of MCTS searches per each move"
+        )
+        (
+            "sample_steps", 
+            po::value<size_t>(&cfg.sp_cfg.sample_steps)->default_value(15),
+            "number of moves to be weighted-random sampled"
+        )
+        (
+            "noise_steps", 
+            po::value<size_t>(&cfg.sp_cfg.noise_steps)->default_value(3),
+            "number of moves to be applied dirichlet noise"
         )
         (
             "noise_eps", 
@@ -76,7 +87,7 @@ po::options_description GetSelfplayConfig(Server::Config& cfg) {
         )
         (
             "noise_alpha", 
-            po::value<double>(&cfg.sp_cfg.dirichlet_alpha)->default_value(0.03),
+            po::value<double>(&cfg.sp_cfg.noise_alpha)->default_value(0.03),
             "dirichlet alpha for selfplay noise"
         )
     ;

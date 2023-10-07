@@ -14,7 +14,6 @@ add_executable(
     selfplay 
     # tests/testmain.cc
     # tests/multi_play.cc
-    sources/selfplay_main.cc
     # tests/indicator_test.cc
     sources/mcts/tree.cc
     sources/mcts/node.cc
@@ -25,12 +24,14 @@ add_executable(
     sources/gomoku/server.cc
     sources/gomoku/logger.cc
     sources/gomoku/utils.cc
+    
+    sources/selfplay_main.cc
 )
 
 
 set(CAFFE2_USE_CUDNN 1)
 find_package(Torch REQUIRED)
-list(APPEND TORCH_LIBRARIES "/usr/local/cuda/extras/CUPTI/lib64/libcupti.so")
+# list(APPEND TORCH_LIBRARIES "/usr/local/cuda/extras/CUPTI/lib64/libcupti.so")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS} -pthread")
 target_link_libraries(selfplay "${TORCH_LIBRARIES}")
 

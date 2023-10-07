@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <torch/torch.h>
 #include <fmt/format.h>
-#include <indicators/cursor_control.hpp>
 #include "gomoku/server.h"
 #include "gomoku/board.h"
 #include "gomoku/logger.h"
@@ -14,8 +13,11 @@ namespace gomoku {
 namespace selfplay {
 
 
-Server::Server(const Server::Config& cfg)
-: config(cfg) {
+std::random_device rd;
+std::mt19937 gen(rd());
+
+
+Server::Server(const Server::Config& cfg): config(cfg) {
     out_state_dir = config.out_dir / "state";
     out_txt_dir = config.out_dir / "txt";
     std::filesystem::create_directories(out_state_dir);
@@ -74,7 +76,7 @@ void Server::Run() {
     // master_pbar = std::make_unique<pb::ProgressBar>(
     master_pbar = std::make_unique<pb::BlockProgressBar>(
         pb::option::PrefixText(fmt::format("[{:>4}/{:>4}]", done, total)),
-        pb::option::BarWidth{30},
+        pb::option::BarWidth{25},
         pb::option::Start{"["},
         pb::option::End{"]"},
         pb::option::ShowElapsedTime{true},
@@ -106,11 +108,10 @@ int Server::SingleSelfplay(int game_idx, int pbar_idx) {
     SelplayConfig cfg = config.sp_cfg;
 
     Board board;
-    mcts::MCTS tree(board, *evaluator, config.mcts_cfg);
-    tree.ApplyRootNoise(cfg.dirichlet_alpha, cfg.noise_eps);
+    MCTS tree(board, *evaluator, config.mcts_cfg);
 
     std::chrono::system_clock::time_point st, ed, total_st, total_ed;
-    std::vector<mcts::MCTS::ActionInfo> action_infos;
+    std::vector<MCTS::ActionInfo> action_infos;
     int game_len = 0;
 
     total_st = std::chrono::system_clock::now();
@@ -118,28 +119,32 @@ int Server::SingleSelfplay(int game_idx, int pbar_idx) {
         pbar[pbar_idx].set_option(pb::option::PostfixText(
             fmt::format("Game {} - Turn {}", game_idx, game_len))); 
         pbar[pbar_idx].print_progress();
-        game_len++;
 
+        if (game_len < cfg.noise_steps) {
+            tree.ApplyRootNoise(cfg.noise_alpha, cfg.noise_eps);
+        }
         st = std::chrono::system_clock::now();
         tree.Search(cfg.compute_budget);
         ed = std::chrono::system_clock::now();
 
         action_infos = tree.GetActionInfos();
-        Action best = tree.GetBestAction();
+        // Action best = tree.GetBestAction();
+        Action move = SelectMove(action_infos, game_len);
 
-        board.Play(best);
+        board.Play(move);
         out << board << '\n';
         out << fmt::format("action: {:>3}, search time: {:.4f} sec\n",
-            Coord2String(Action2Coord(best)), 
+            Coord2String(Action2Coord(move)), 
             std::chrono::duration<double>(ed - st).count());
         ShowTopActions(action_infos, 5, out);
         out << std::endl;
-        tree.Play(best);
+        tree.Play(move);
         tree.Reset(board);
+        game_len++;
 
-        actions.push_back(best);
+        actions.push_back(move);
         std::vector<int> single_counts(SIZE * SIZE, 0);
-        for (const mcts::MCTS::ActionInfo& info: action_infos) {
+        for (const MCTS::ActionInfo& info: action_infos) {
             single_counts[info.action] = info.n;
         }
         counts.emplace_back(std::move(single_counts));
@@ -170,6 +175,47 @@ int Server::SingleSelfplay(int game_idx, int pbar_idx) {
 }
 
 
+mcts::Action Server::SelectMove(
+    const std::vector<MCTS::ActionInfo>& infos, int turn) const {
+    if (turn < config.sp_cfg.sample_steps) {
+        std::vector<int> weights;
+        std::transform(
+            infos.begin(), infos.end(),
+            std::back_inserter(weights),
+            [](const MCTS::ActionInfo& info) {return info.n;}
+        );
+        std::discrete_distribution<int> sampler(weights.begin(), weights.end());
+        return infos[sampler(gen)].action;
+        // return (0);
+    }
+    else {
+        auto max_elem_iter = std::max_element(
+            infos.begin(), infos.end(), 
+            [](const MCTS::ActionInfo& a, const MCTS::ActionInfo& b) {
+                return a.n < b.n;
+            }
+        );
+        return max_elem_iter->action;
+    }
+}
+
+
+std::ostream& operator<<(std::ostream& out, const Server::Config& cfg) {
+    std::cout << "model path: " << cfg.model_path << "\n";
+    std::cout << "output dir: " << cfg.out_dir << "\n";
+    std::cout << "logging start index: " << cfg.starting_index << "\n";
+    std::cout << "max games: " << cfg.max_games << "\n";
+    std::cout << "num workers: " << cfg.n_workers << "\n";
+    std::cout << "mcts num threads: " << cfg.mcts_cfg.n_threads << "\n";
+    std::cout << "mcts virtual loss: " << cfg.mcts_cfg.virtual_loss << "\n";
+    std::cout << "mcts p_uct: " << cfg.mcts_cfg.p_uct << "\n";
+    std::cout << "selfplay compute budget: " << cfg.sp_cfg.compute_budget << "\n";
+    std::cout << "selfplay sample steps: " << cfg.sp_cfg.sample_steps << "\n";
+    std::cout << "selfplay noise steps: " << cfg.sp_cfg.noise_steps << "\n";
+    std::cout << "selfplay noise epsilon: " << cfg.sp_cfg.noise_eps << "\n";
+    std::cout << "selfplay noise alpha: " << cfg.sp_cfg.noise_alpha;
+    return out;
+}
 
     
 } // namespace selfplay
