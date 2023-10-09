@@ -18,8 +18,6 @@ RUN wget -q https://download.pytorch.org/libtorch/cu118/libtorch-cxx11-abi-share
     rm libtorch-cxx11-abi-shared-with-deps-2.1.0+cu118.zip
 ENV LIBTORCH_DIR /libtorch
 
-# RUN cp /usr/local/cuda/extras/CUPTI/lib64/libcupti* /usr/local/cuda/lib64s
-
 COPY . /app
 
 WORKDIR /app/build

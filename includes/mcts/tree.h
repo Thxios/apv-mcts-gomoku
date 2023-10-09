@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <vector>
 #include <utility>
 #include <memory>
@@ -9,11 +10,13 @@
 #include <atomic>
 #include <mutex>
 #include <condition_variable>
+#include <boost/program_options.hpp>
 #include "mcts/state.h"
 #include "mcts/evaluator.h"
 
 
 namespace mcts {
+
 
 class MCTS {
 private:
@@ -45,7 +48,7 @@ private:
         Node* parent;
         std::atomic<int> n = 0;
         std::atomic<double> w = 0;
-        std::atomic<double> n_sqrt = 0;
+        // std::atomic<double> n_sqrt = 0;
         std::atomic<bool> expanding = false;
         std::atomic<bool> is_leaf = true;
     };
@@ -55,6 +58,8 @@ public:
         size_t n_threads = 4;
         int virtual_loss = 3;
         double p_uct = 5;
+
+        friend std::ostream& operator<<(std::ostream& out, const Config& cfg);
     };
 
     struct ActionInfo {
@@ -100,7 +105,12 @@ private:
     std::condition_variable cv_wait;
 };
 
-}
+
+boost::program_options::options_description 
+GetMCTSConfig(MCTS::Config& cfg);
+
+
+} // namespace mcts
 
 
 

@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <torch/torch.h>
 #include <fmt/format.h>
-#include "gomoku/server.h"
+#include "gomoku/selfplay.h"
 #include "gomoku/board.h"
 #include "gomoku/logger.h"
 
@@ -104,7 +104,7 @@ int Server::SingleSelfplay(int game_idx, int pbar_idx) {
 
     std::vector<Action> actions;
     std::vector<std::vector<int>> counts;
-    SelplayConfig cfg = config.sp_cfg;
+    SelfplayConfig cfg = config.sp_cfg;
 
     Board board;
     MCTS tree(board, *evaluator, config.mcts_cfg);
@@ -202,21 +202,89 @@ mcts::Action Server::SelectMove(
 
 
 std::ostream& operator<<(std::ostream& out, const Server::Config& cfg) {
-    std::cout << "model path: " << cfg.model_path << "\n";
-    std::cout << "output dir: " << cfg.out_dir << "\n";
-    std::cout << "logging start index: " << cfg.starting_index << "\n";
-    std::cout << "max games: " << cfg.max_games << "\n";
-    std::cout << "num workers: " << cfg.n_workers << "\n";
-    std::cout << "mcts num threads: " << cfg.mcts_cfg.n_threads << "\n";
-    std::cout << "mcts virtual loss: " << cfg.mcts_cfg.virtual_loss << "\n";
-    std::cout << "mcts p_uct: " << cfg.mcts_cfg.p_uct << "\n";
-    std::cout << "selfplay compute budget: " << cfg.sp_cfg.compute_budget << "\n";
-    std::cout << "selfplay sample steps: " << cfg.sp_cfg.sample_steps << "\n";
-    std::cout << "selfplay noise steps: " << cfg.sp_cfg.noise_steps << "\n";
-    std::cout << "selfplay noise epsilon: " << cfg.sp_cfg.noise_eps << "\n";
-    std::cout << "selfplay noise alpha: " << cfg.sp_cfg.noise_alpha;
+    out << "model path: " << cfg.model_path << "\n";
+    out << "output dir: " << cfg.out_dir << "\n";
+    out << "logging start index: " << cfg.starting_index << "\n";
+    out << "max games: " << cfg.max_games << "\n";
+    out << "num workers: " << cfg.n_workers << "\n";
+    out << "mcts config: " << cfg.mcts_cfg << "\n";
+    out << "selfplay compute budget: " << cfg.sp_cfg.compute_budget << "\n";
+    out << "selfplay sample steps: " << cfg.sp_cfg.sample_steps << "\n";
+    out << "selfplay noise steps: " << cfg.sp_cfg.noise_steps << "\n";
+    out << "selfplay noise epsilon: " << cfg.sp_cfg.noise_eps << "\n";
+    out << "selfplay noise alpha: " << cfg.sp_cfg.noise_alpha;
     return out;
 }
+
+
+boost::program_options::options_description
+GetSelfplayConfig(Server::Config& cfg) {
+    boost::program_options::options_description desc("Selfplay config");
+    desc.add_options()
+        (
+            "model_path", 
+            boost::program_options::value<std::filesystem::path>
+                (&cfg.model_path)->required(), 
+            "torch jit module path"
+        )
+        (
+            "out_dir", 
+            boost::program_options::value<std::filesystem::path>
+                (&cfg.out_dir)->required(), 
+            "output directory"
+        )
+        (
+            "starting_index", 
+            boost::program_options::value<size_t>(&cfg.starting_index)
+                ->default_value(0),
+            "starting index for logging"
+        )
+        (
+            "max_games", 
+            boost::program_options::value<size_t>(&cfg.max_games)
+                ->default_value(100),
+            "maximum number of games to be played"
+        )
+        (
+            "n_workers", 
+            boost::program_options::value<size_t>(&cfg.n_workers)
+                ->default_value(1),
+            "number of games played simultaneously"
+        )
+        (
+            "n_searches", 
+            boost::program_options::value<size_t>(&cfg.sp_cfg.compute_budget)
+                ->default_value(800),
+            "number of MCTS searches per each move"
+        )
+        (
+            "sample_steps", 
+            boost::program_options::value<size_t>(&cfg.sp_cfg.sample_steps)
+                ->default_value(15),
+            "number of moves to be weighted-random sampled"
+        )
+        (
+            "noise_steps", 
+            boost::program_options::value<size_t>(&cfg.sp_cfg.noise_steps)
+                ->default_value(3),
+            "number of moves to be applied dirichlet noise"
+        )
+        (
+            "noise_eps", 
+            boost::program_options::value<double>(&cfg.sp_cfg.noise_eps)
+                ->default_value(0.25),
+            "epsilon for selfplay noise"
+        )
+        (
+            "noise_alpha", 
+            boost::program_options::value<double>(&cfg.sp_cfg.noise_alpha)
+                ->default_value(0.03),
+            "dirichlet alpha for selfplay noise"
+        )
+    ;
+    return desc;
+}
+
 
     
 } // namespace selfplay

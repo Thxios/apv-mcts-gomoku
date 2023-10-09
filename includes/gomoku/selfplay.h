@@ -9,6 +9,7 @@
 #include <atomic>
 #include <memory>
 #include <filesystem>
+#include <boost/program_options.hpp>
 #include <indicators/block_progress_bar.hpp>
 #include <indicators/dynamic_progress.hpp>
 #include <indicators/indeterminate_progress_bar.hpp>
@@ -24,7 +25,7 @@ namespace pb = indicators;
 using mcts::MCTS;
 
 
-struct SelplayConfig {
+struct SelfplayConfig {
     size_t compute_budget = 1000;
     size_t sample_steps = 15;
     size_t noise_steps = 3;
@@ -37,7 +38,7 @@ class Server {
 public:
     struct Config {
         MCTS::Config mcts_cfg;
-        SelplayConfig sp_cfg;
+        SelfplayConfig sp_cfg;
         std::filesystem::path model_path;
         std::filesystem::path out_dir;
         size_t starting_index;
@@ -73,6 +74,10 @@ private:
 
     std::filesystem::path out_state_dir, out_txt_dir;
 };
+
+
+boost::program_options::options_description 
+GetSelfplayConfig(Server::Config& cfg);
 
 
 }

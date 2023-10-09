@@ -21,7 +21,7 @@ add_executable(
     sources/gomoku/board.cc
     sources/gomoku/evaluator.cc
     sources/gomoku/eval_queue.cc
-    sources/gomoku/server.cc
+    sources/gomoku/selfplay.cc
     sources/gomoku/logger.cc
     sources/gomoku/utils.cc
     

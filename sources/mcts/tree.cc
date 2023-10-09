@@ -1,5 +1,5 @@
 
-// #include <iostream>
+#include <iomanip>
 #include "mcts/tree.h"
 #include "mcts/noise.h"
 
@@ -132,6 +132,7 @@ void MCTS::SingleSearch(StateBase* search_state, int t_idx) {
 void MCTS::ExpandRoot() {
     if (!state->Terminated() && root->IsLeaf()) {
         Evaluation output = evaluator.Evaluate(state.get());
+        root->Update(output.first);
         root->Expand(output.second);
     }
 }
@@ -180,6 +181,45 @@ std::vector<MCTS::ActionInfo> MCTS::GetActionInfos() const {
     }
     return ret;
 }
+
+
+
+std::ostream& operator<<(std::ostream& out, const MCTS::Config& cfg) {
+    out << "MCTS::Config(" << "\n    ";
+    out << "n_threads: " << cfg.n_threads << "\n    ";
+    out << "virtual_loss: " << cfg.virtual_loss << "\n    ";
+    out << "p_uct: " << std::setprecision(3) << cfg.p_uct;
+    out << ")";
+    return out;
+}
+
+
+boost::program_options::options_description
+GetMCTSConfig(MCTS::Config& cfg) {
+    boost::program_options::options_description desc("MCTS config");
+    desc.add_options()
+        (
+            "n_threads", 
+            boost::program_options::value<size_t>(&cfg.n_threads)
+                ->default_value(4),
+            "number of search threads per tree"
+        )
+        (
+            "virtual_loss", 
+            boost::program_options::value<int>(&cfg.virtual_loss)
+                ->default_value(3),
+            "virtual loss for MCTS search"
+        )
+        (
+            "p_uct", 
+            boost::program_options::value<double>(&cfg.p_uct)
+                ->default_value(5.),
+            "p_uct for MCTS search"
+        )
+    ;
+    return desc;
+}
+
 
 
 }

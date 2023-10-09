@@ -3,8 +3,8 @@
 #include <algorithm>
 #include "mcts/tree.h"
 
-
 namespace mcts {
+
 
 MCTS::Node::Node(Prob p_, Node* parent_): p(p_), parent(parent_) {}
 
@@ -43,7 +43,6 @@ std::pair<Action, MCTS::Node*> MCTS::Node::Select(double p_uct) const {
 
 void MCTS::Node::Update(Reward z) {
     n.fetch_add(1);
-    n_sqrt.store(std::sqrt(n.load()));
     w.fetch_add(z);
 }
 
@@ -61,10 +60,9 @@ void MCTS::Node::RevertVirtualLoss(int vloss) {
 
 
 double MCTS::Node::UCT(double p_uct) const {
-    int n_ = n.load();
+    int n_ = n.load(), pn_ = parent->n.load();
     double w_ = w.load();
-    double p_n_sqrt = parent->n_sqrt.load();
-    double u = p * p_uct * p_n_sqrt / (double)(1 + n_);
+    double u = p * p_uct * std::sqrt(pn_) / (double)(1 + n_);
     return (n_ ? (w_ / n_) : 0) + u;
 }
 
