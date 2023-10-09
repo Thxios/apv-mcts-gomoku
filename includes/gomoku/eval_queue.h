@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <vector>
+#include <memory>
 #include <queue>
 #include <thread>
 #include <future>
@@ -20,24 +22,32 @@ using mcts::Evaluation;
 
 class EvaluationQueue : public mcts::EvaluatorBase {
 public:
-    explicit EvaluationQueue(GomokuEvaluator&& evaluator_);
+    using Evaluator = std::unique_ptr<GomokuEvaluator>;
+
+public:
+    EvaluationQueue(Evaluator evaluator);
+    EvaluationQueue(std::vector<Evaluator> evaluators);
+    EvaluationQueue(EvaluationQueue&& other) = delete;
     virtual ~EvaluationQueue();
     
     virtual Evaluation Evaluate(const mcts::StateBase* state);
 
 private:
-    void EvaluationThread();
+    // void EvaluationThread();
+    void EvaluationThread(Evaluator evaluator);
 
-    GomokuEvaluator evaluator;
-    std::thread eval_thread;
+    // GomokuEvaluator evaluatos;
+    // std::thread eval_thread;
+    // std::vector<GomokuEvaluator> evaluators;
+    std::vector<std::thread> eval_threads;
 
     bool running;
     std::queue<std::pair<Input, std::promise<Output>*>> q;
     std::mutex m_q;
     std::condition_variable cv_q;
 
-    std::unordered_set<std::size_t> hashes;
-    std::mutex m_s;
+    // std::unordered_set<std::size_t> hashes;
+    // std::mutex m_s;
 };
 
 

@@ -24,11 +24,5 @@ std::vector<double> Dirichlet::Sample(double alpha, int size) {
 }
 
 
-int Choice(int max) {
-    std::uniform_int_distribution dist(0, max - 1);
-    return dist(gen);
-}
-
-
 }
 

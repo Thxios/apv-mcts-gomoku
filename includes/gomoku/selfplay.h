@@ -50,7 +50,7 @@ public:
 
 public:
     Server(const Config& cfg);
-    ~Server() = default;
+    Server(Server&& other) = delete;
 
     void Run();
     void LoadEvauator();

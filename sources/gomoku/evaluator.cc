@@ -6,12 +6,20 @@
 
 namespace gomoku {
 
+
 GomokuEvaluator::GomokuEvaluator(torch::jit::script::Module&& model_)
-:model(model_), device(torch::kCPU) {
-    torch::NoGradGuard();
+: model(std::move(model_)), device(torch::kCPU) {
     if (torch::cuda::is_available()) {
         device = torch::Device(torch::kCUDA);
     }
+    model.eval();
+    model.to(device);
+}
+
+
+GomokuEvaluator::GomokuEvaluator
+(torch::jit::script::Module&& model_, torch::Device device_)
+: model(std::move(model_)), device(device) {
     model.eval();
     model.to(device);
 }
@@ -87,18 +95,15 @@ Input GomokuEvaluator::Preprocess(const Board& board) {
 }
 
 Evaluation GomokuEvaluator::Postprocess(Output&& output, const Board& board) {
-    torch::NoGradGuard();
     Reward r = std::clamp<double>(output.first, -1, 1);
-    
-    std::vector<std::pair<Action, Prob>> probs;
 
+    std::vector<std::pair<Action, Prob>> probs;
     if (board.GetTurnElapsed() == 0) {
         probs.emplace_back(Coord2Action(SIZE / 2, SIZE / 2), 1.);
     }
     else {
         const int8_t* empty_plane = board.GetDataPtr();
         float* pred_ptr = output.second.data_ptr<float>();
-
         for (int i = 0; i < SIZE*SIZE; i++) {
             if (empty_plane[i] == 1) {
                 probs.emplace_back((Action)i, (Prob)pred_ptr[i]);

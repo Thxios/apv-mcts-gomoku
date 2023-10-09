@@ -19,6 +19,10 @@ using mcts::Evaluation;
 
 
 struct Input {
+    Input() = default;
+    Input(Input&& other) = default;
+    Input& operator=(Input&& other) = default;
+
     torch::Tensor state;
     torch::Tensor turn;
     torch::Tensor mask;
@@ -29,8 +33,9 @@ using Output = std::pair<float, torch::Tensor>;
 
 class GomokuEvaluator {
 public:
-    explicit GomokuEvaluator(torch::jit::script::Module&& model_);
-    ~GomokuEvaluator() = default;
+    GomokuEvaluator(torch::jit::script::Module&& model_);
+    GomokuEvaluator(torch::jit::script::Module&& model_, torch::Device device_);
+    GomokuEvaluator(GomokuEvaluator&& other) = default;
     
     std::vector<Output> EvaluateBatch(std::vector<Input>& inputs);
 

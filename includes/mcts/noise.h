@@ -13,6 +13,5 @@ public:
     static std::vector<double> Sample(double alpha, int size);
 };
 
-int Choice(int max);
 
 }

@@ -75,6 +75,7 @@ public:
 public:
     MCTS(const StateBase& init_state, EvaluatorBase& evaluator);
     MCTS(const StateBase& init_state, EvaluatorBase& evaluator, Config conf);
+    MCTS(MCTS&& other) = delete;
     ~MCTS();
 
     void Search(int times);

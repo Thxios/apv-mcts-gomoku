@@ -25,10 +25,6 @@ public:
 
 public:
     Board();
-    Board(const Board& board) = default;
-    Board(Board&& board) = default;
-    Board& operator=(const Board& board) = default;
-    Board& operator=(Board&& board) = default;
     virtual ~Board() = default;
 
     virtual std::unique_ptr<mcts::StateBase> GetCopy() const;

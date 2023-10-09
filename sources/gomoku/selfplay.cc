@@ -28,8 +28,10 @@ void Server::LoadEvauator() {
     std::cout << "===== Load Evaluator =====" << std::endl;
     
     torch::jit::script::Module model(torch::jit::load(config.model_path));
-    evaluator = std::make_unique<EvaluationQueue>(
-        GomokuEvaluator(std::move(model)));
+
+    std::unique_ptr<GomokuEvaluator> ev = 
+        std::make_unique<GomokuEvaluator>(std::move(model));
+    evaluator = std::make_unique<EvaluationQueue>(std::move(ev));
 
     std::cout << "===== Evaluator Loaded =====" << std::endl;
 }
