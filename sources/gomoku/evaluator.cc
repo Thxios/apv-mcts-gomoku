@@ -56,21 +56,27 @@ std::vector<Output> GomokuEvaluator::EvaluateBatch(std::vector<Input>& inputs) {
 
 Input GomokuEvaluator::Preprocess(const Board& board) {
     torch::NoGradGuard();
-    Input ret;
-    ret.state = torch::from_blob(
+    torch::Tensor state = torch::from_blob(
         (void*)board.GetDataPtr(),
         {3, SIZE, SIZE},
         torch::TensorOptions().dtype(torch::kInt8)
     ).to(torch::kFloat32);
-    ret.state = torch::concatenate({
-        ret.state,
-        ((board.GetTurn() == BLACK) ? 
-        torch::ones({1, SIZE, SIZE}, torch::TensorOptions().dtype(torch::kFloat32)) :
-        torch::zeros({1, SIZE, SIZE}, torch::TensorOptions().dtype(torch::kFloat32)))
-    });
-    ret.turn = ((board.GetTurn() == BLACK) ? 
-        torch::zeros(1, torch::TensorOptions().dtype(torch::kInt64)) :
-        torch::ones(1, torch::TensorOptions().dtype(torch::kInt64)));
+    torch::Tensor color_plane;
+    if (board.GetTurn() == BLACK) {
+        color_plane = torch::ones(
+            {1, SIZE, SIZE}, torch::TensorOptions().dtype(torch::kFloat32));
+    }
+    else {
+        color_plane = torch::zeros(
+            {1, SIZE, SIZE}, torch::TensorOptions().dtype(torch::kFloat32));
+        state = state.index({
+            torch::tensor({EMPTY, WHITE, BLACK}), "..."});
+    }
+    Input ret;
+    ret.state = torch::cat({std::move(state), std::move(color_plane)});
+    ret.turn = torch::tensor(
+        {(board.GetTurn() == BLACK) ? 0 : 1}, 
+        torch::TensorOptions().dtype(torch::kInt64));
     ret.mask = torch::from_blob(
         (void*)board.GetDataPtr(),
         {SIZE, SIZE},
@@ -83,8 +89,6 @@ Input GomokuEvaluator::Preprocess(const Board& board) {
 Evaluation GomokuEvaluator::Postprocess(Output&& output, const Board& board) {
     torch::NoGradGuard();
     Reward r = std::clamp<double>(output.first, -1, 1);
-    if (board.GetTurn() == WHITE)
-        r = -r;
     
     std::vector<std::pair<Action, Prob>> probs;
 

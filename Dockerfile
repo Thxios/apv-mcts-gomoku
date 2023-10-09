@@ -1,5 +1,5 @@
 
-FROM pytorch/libtorch-cxx11-builder:cuda118
+FROM pytorch/libtorch-cxx11-builder:cuda118 as base
 
 RUN apt update -q && \
     apt install -qq -y \
@@ -25,3 +25,5 @@ COPY . /app
 WORKDIR /app/build
 RUN cmake .. -DCMAKE_PREFIX_PATH=${LIBTORCH_DIR} && \
     make
+
+

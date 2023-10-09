@@ -26,6 +26,7 @@ add_executable(
     sources/gomoku/utils.cc
     
     sources/selfplay_main.cc
+    # tests/boardtest.cc
 )
 
 

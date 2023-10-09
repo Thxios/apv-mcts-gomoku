@@ -13,8 +13,7 @@ namespace gomoku {
 namespace selfplay {
 
 
-std::random_device rd;
-std::mt19937 gen(rd());
+thread_local std::mt19937 gen(std::random_device{}());
 
 
 Server::Server(const Server::Config& cfg): config(cfg) {
@@ -124,7 +123,9 @@ int Server::SingleSelfplay(int game_idx, int pbar_idx) {
             tree.ApplyRootNoise(cfg.noise_alpha, cfg.noise_eps);
         }
         st = std::chrono::system_clock::now();
-        tree.Search(cfg.compute_budget);
+        if (game_len > 0) {
+            tree.Search(cfg.compute_budget);
+        }
         ed = std::chrono::system_clock::now();
 
         action_infos = tree.GetActionInfos();
@@ -177,26 +178,26 @@ int Server::SingleSelfplay(int game_idx, int pbar_idx) {
 
 mcts::Action Server::SelectMove(
     const std::vector<MCTS::ActionInfo>& infos, int turn) const {
+    
+    std::vector<int> weights(infos.size(), 0);
     if (turn < config.sp_cfg.sample_steps) {
-        std::vector<int> weights;
-        std::transform(
-            infos.begin(), infos.end(),
-            std::back_inserter(weights),
-            [](const MCTS::ActionInfo& info) {return info.n;}
-        );
-        std::discrete_distribution<int> sampler(weights.begin(), weights.end());
-        return infos[sampler(gen)].action;
-        // return (0);
+        for (int i = 0; i < infos.size(); i++) {
+            weights[i] = infos[i].n;
+        }
     }
     else {
-        auto max_elem_iter = std::max_element(
+        int n_max = std::max_element(
             infos.begin(), infos.end(), 
             [](const MCTS::ActionInfo& a, const MCTS::ActionInfo& b) {
                 return a.n < b.n;
-            }
-        );
-        return max_elem_iter->action;
+            })->n;
+        for (int i = 0; i < infos.size(); i++) {
+            if (infos[i].n == n_max)
+                weights[i] = 1;
+        }
     }
+    std::discrete_distribution<int> sampler(weights.begin(), weights.end());
+    return infos[sampler(gen)].action;
 }
 
 
